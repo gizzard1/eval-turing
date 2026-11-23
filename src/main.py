@@ -26,6 +26,20 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("process-file-upload")
 
 
+def _event_attr(cloud_event, name, default):
+    """Lee id/type del evento, sea un objeto falso, un CloudEvent real
+    (donde van en _attributes) o un dict."""
+    value = getattr(cloud_event, name, None)
+    if value:
+        return value
+    attrs = getattr(cloud_event, "_attributes", None)
+    if isinstance(attrs, dict) and attrs.get(name):
+        return attrs[name]
+    if isinstance(cloud_event, dict):
+        return cloud_event.get(name, default)
+    return default
+
+
 def _safe_int(value, field_name, event_id):
     """Convierte tamaño a int; si viene mal, loguea WARNING y devuelve None."""
     if value is None:
@@ -66,14 +80,18 @@ def extract_metadata(data, event_id):
     if not isinstance(data, dict):
         raise ValueError(f"El evento no trae un dict válido: {type(data).__name__}")
 
+    bucket = data.get("bucket")
     name = data.get("name")
 
+    if not bucket:
+        raise ValueError("Evento sin 'bucket': no se puede identificar el origen")
     if not name:
         raise ValueError("No se puede identificar el nombre del archivo")
 
     size = _safe_int(data.get("size"), "size", event_id)
 
     metadata = {
+        "bucket": bucket,
         "name": name,
         "size_bytes": size,
         "size_kb": round(size / 1024, 2) if size is not None else None,
@@ -88,6 +106,7 @@ def extract_metadata(data, event_id):
                     "event": "metadata_missing",
                     "event_id": event_id,
                     "field": "contentType",
+                    "bucket": bucket,
                     "name": name,
                     "message": "Sin contentType; se asume application/octet-stream",
                 }
@@ -111,8 +130,8 @@ def on_file_upload(cloud_event):
       ...
     }
     """
-    event_id = getattr(cloud_event, "id", "sin-id")
-    event_type = getattr(cloud_event, "type", "desconocido")
+    event_id = _event_attr(cloud_event, "id", "sin-id")
+    event_type = _event_attr(cloud_event, "type", "desconocido")
 
     logger.info(
         json.dumps(
@@ -129,6 +148,12 @@ def on_file_upload(cloud_event):
         data = cloud_event.data
         if data is None:
             raise ValueError("El evento llegó sin datos (cloud_event.data es None)")
+        # Algunas versiones / entornos entregan el payload como string JSON.
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"El evento trae datos que no son JSON válido: {exc}") from exc
 
         metadata = extract_metadata(data, event_id)
 
@@ -151,8 +176,9 @@ def on_file_upload(cloud_event):
                 {
                     "event": "file_upload_processed",
                     "event_id": event_id,
-                    "bucket": metadata["bucket"],
-                    "name": metadata["name"],
+                    # Todo acceso a metadatos es con .get(), nunca con ["bucket"]. 
+                    "bucket": metadata.get("bucket"),
+                    "name": metadata.get("name"),
                     "message": "Archivo procesado con éxito",
                 }
             )
