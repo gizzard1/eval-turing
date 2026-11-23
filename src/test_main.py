@@ -86,3 +86,37 @@ def test_success_extracts_metadata():
     assert result["size_bytes"] == 24576
     assert result["size_kb"] == 24.0
     assert result["content_type"] == "application/pdf"
+
+
+
+# ---------------------------------------------------------------------------
+# Casos borde: no bloquean el flujo
+# ---------------------------------------------------------------------------
+
+
+def test_missing_content_type_defaults_to_octet_stream(caplog):
+    data = valid_data()
+    del data["contentType"]
+
+    with caplog.at_level("WARNING", logger="process-file-upload"):
+        result = main.on_file_upload(make_event(data))
+
+    assert result["content_type"] == "application/octet-stream"
+    assert result["name"] == "factura-001.pdf"
+
+
+def test_missing_size_returns_none():
+    data = valid_data()
+    del data["size"]
+
+    result = main.on_file_upload(make_event(data))
+
+    assert result["size_bytes"] is None
+    assert result["size_kb"] is None
+    assert result["name"] == "factura-001.pdf"
+
+
+def test_invalid_size_returns_none():
+    result = main.on_file_upload(make_event(valid_data(size="no-es-numero")))
+    assert result["size_bytes"] is None
+    assert result["size_kb"] is None
