@@ -14,7 +14,7 @@ El flujo es:
 4. La función valida el payload y extrae los metadatos.
 5. Cloud Logging conserva los resultados y los errores.
 
-![Arquitectura: subida de archivo, Cloud Storage, Eventarc, Cloud Function y Cloud Logging](src/docs/img/dia.png)
+![Arquitectura: subida de archivo, Cloud Storage, Eventarc, Cloud Function y Cloud Logging](https://home.agenda-master.com.mx/storage/turing/dia.png)
 
 ## Archivos del proyecto
 
@@ -29,33 +29,33 @@ El flujo es:
 
 Abra Google Cloud, seleccione el proyecto y revise la sección **IAM y administración**. La captura muestra el proyecto utilizado y el menú donde se administran los recursos y las identidades.
 
-![Acceso a Google Cloud y al proyecto](src/docs/img/step1.png)
+![Acceso a Google Cloud y al proyecto](https://home.agenda-master.com.mx/storage/turing/step1.png)
 
 Desde el menú lateral puede abrir **IAM y administración → IAM** para consultar los principales accesos asignados al proyecto.
 
-![Menú de IAM y administración](src/docs/img/step2.png)
+![Menú de IAM y administración](https://home.agenda-master.com.mx/storage/turing/step2.png)
 
 En **Permisos para el proyecto**, revise qué usuarios, cuentas de servicio y roles tienen acceso a los recursos. No conceda permisos que no sean necesarios para el ejercicio.
 
-![Permisos actuales del proyecto](src/docs/img/step3.png)
+![Permisos actuales del proyecto](https://home.agenda-master.com.mx/storage/turing/step3.png)
 
 Para agregar un colaborador, use **Otorgar acceso**, introduzca su correo electrónico y seleccione un rol mínimo. En el ejemplo se asignó el rol **Lector**, adecuado para consultar recursos sin modificar su configuración.
 
-![Otorgar acceso con el rol Lector](src/docs/img/step4.png)
+![Otorgar acceso con el rol Lector](https://home.agenda-master.com.mx/storage/turing/step4.png)
 
 ## 2. Entrar a Cloud Storage
 
 Después de confirmar la identidad y los permisos, vuelva a la página principal y entre a **Cloud Storage** desde el menú de productos o el buscador.
 
-![Página principal de bienvenida a Google Cloud](src/docs/img/step5.png)
+![Página principal de bienvenida a Google Cloud](https://home.agenda-master.com.mx/storage/turing/step5.png)
 
 La consola de Cloud Storage permite crear y administrar buckets. Esta sección se usará para guardar los archivos que dispararán la función.
 
-![Consola de Cloud Storage](src/docs/img/step6.png)
+![Consola de Cloud Storage](https://home.agenda-master.com.mx/storage/turing/step6.png)
 
 Puede confirmar que la API de almacenamiento está disponible desde **APIs y servicios → Biblioteca**, buscando **Cloud Storage**.
 
-![Detalles del servicio Cloud Storage](src/docs/img/info1.png)
+![Detalles del servicio Cloud Storage](https://home.agenda-master.com.mx/storage/turing/info1.png)
 
 ## 3. Crear el bucket
 
@@ -69,45 +69,45 @@ Use **Crear bucket** y configure los parámetros básicos:
 - Control de acceso uniforme.
 - Región seleccionada según su disponibilidad y requisitos de latencia.
 
-![Primeros pasos y ubicación del bucket](src/docs/img/step7.png)
+![Primeros pasos y ubicación del bucket](https://home.agenda-master.com.mx/storage/turing/step7.png)
 
 Configure la clase de almacenamiento, el control de acceso y la prevención de acceso público.
 
-![Protección de datos y clase de almacenamiento](src/docs/img/step7.png)
+![Protección de datos y clase de almacenamiento](https://home.agenda-master.com.mx/storage/turing/step7.png)
 
 Configure la duración de eliminación de objetos o mantenga la política según las necesidades del proyecto. En el ejemplo se seleccionó una retención personalizada de 3 días.
 
-![Opciones de ciclo de vida y retención](src/docs/img/step7.png)
+![Opciones de ciclo de vida y retención](https://home.agenda-master.com.mx/storage/turing/step7.png)
 
 La vista de creación también muestra el código REST equivalente para el bucket. Después de completar los pasos, seleccione **Crear**.
 
-![Configuración final del bucket y código REST](src/docs/img/step7.png)
+![Configuración final del bucket y código REST](https://home.agenda-master.com.mx/storage/turing/step7.png)
 
 Cuando el bucket esté creado, verá sus detalles, objetos, configuración, permisos y operaciones.
 
-![Detalles del bucket evalu_turing](src/docs/img/step8.png)
+![Detalles del bucket evalu_turing](https://home.agenda-master.com.mx/storage/turing/step8.png)
 
 ## 4. Configurar el ciclo de vida del bucket
 
 Abra la pestaña **Ciclo de vida** del bucket. Allí puede agregar reglas que cambien o eliminen objetos automáticamente según su antigüedad.
 
-![Configuración del ciclo de vida](src/docs/img/step8.png)
+![Configuración del ciclo de vida](https://home.agenda-master.com.mx/storage/turing/step8.png)
 
 Como ejemplo, cree una regla que elimine los objetos después de 30 días. Puede combinarse con una condición por prefijo, como `.jpg`, para controlar solamente ciertos archivos.
 
-![Regla de ciclo de vida](src/docs/img/step9.png)
+![Regla de ciclo de vida](https://home.agenda-master.com.mx/storage/turing/step9.png)
 
 Puede limitar la regla con una condición de nombre de objeto y una fecha o antigüedad mínima.
 
-![Acción y condiciones de la regla](src/docs/img/step10.png)
+![Acción y condiciones de la regla](https://home.agenda-master.com.mx/storage/turing/step10.png)
 
 Una regla adicional puede establecer la clase de almacenamiento en **Nearline** después de un mes y conservar ahí las copias menos utilizadas.
 
-![Selección de la acción de ciclo de vida](src/docs/img/step10.png)
+![Selección de la acción de ciclo de vida](https://home.agenda-master.com.mx/storage/turing/step10.png)
 
 En **Permisos**, revise que se hayan creado las cuentas de servicio y los roles necesarios. El bucket debe permitir su administración y lectura sin habilitar el acceso público.
 
-![Permisos asociados al bucket](src/docs/img/step 11.png)
+![Permisos asociados al bucket](https://home.agenda-master.com.mx/storage/turing/step 11.png)
 
 ## 5. Crear una regla personalizada
 
@@ -115,7 +115,7 @@ Para definir una condición fuera de las reglas básicas, use **Condiciones** y 
 
 En el ejemplo se creó una condición llamada `Días laborales`, basada en la condición de **Día de la semana** con el operador **Antes**, restringida a días posteriores a viernes y a la zona horaria estándar central.
 
-![Creación de una condición personalizada](src/docs/img/step12.png)
+![Creación de una condición personalizada](https://home.agenda-master.com.mx/storage/turing/step12.png)
 
 Guarde la condición y revisela junto con las demás reglas del bucket.
 
@@ -123,19 +123,19 @@ Guarde la condición y revisela junto con las demás reglas del bucket.
 
 Abra **Cloud Run**, que es el servicio administrado usado por las Cloud Functions de 2ª generación.
 
-![Consola de Cloud Run](src/docs/img/step13.png)
+![Consola de Cloud Run](https://home.agenda-master.com.mx/storage/turing/step13.png)
 
 En **APIs y servicios → Biblioteca**, confirme que **Cloud Build** está disponible. Cloud Build compila la imagen a partir del código fuente.
 
-![Detalles de Cloud Build API](src/docs/img/info1.2.png)
+![Detalles de Cloud Build API](https://home.agenda-master.com.mx/storage/turing/info1.2.png)
 
 Compruebe también que estén visibles las APIs necesarias: Cloud Storage, Cloud Functions, Cloud Logging, Eventarc y Cloud Pub/Sub.
 
-![Catálogo de APIs necesarias](src/docs/img/info1.3.png)
+![Catálogo de APIs necesarias](https://home.agenda-master.com.mx/storage/turing/info1.3.png)
 
 Desde el botón **Habilitar APIs y servicios**, habilite las APIs requeridas por la función y por el activador de eventos.
 
-![Habilitación de Eventarc y Cloud Pub/Sub](src/docs/img/info 13.png)
+![Habilitación de Eventarc y Cloud Pub/Sub](https://home.agenda-master.com.mx/storage/turing/info 13.png)
 
 Si Google Cloud solicita otorgar roles, revise cuidadosamente el alcance antes de continuar:
 
@@ -143,13 +143,13 @@ Si Google Cloud solicita otorgar roles, revise cuidadosamente el alcance antes d
 - El receptor de eventos de Cloud Storage necesita permisos para consumir las publicaciones.
 - Cloud Pub/Sub necesita `roles/iam.serviceAccountTokenCreator` para generar tokens de identidad.
 
-![Solicitud de rol para Eventarc](src/docs/img/info 13.1.png)
+![Solicitud de rol para Eventarc](https://home.agenda-master.com.mx/storage/turing/info 13.1.png)
 
-![Asignación del receptor de eventos](src/docs/img/info 13.2.png)
+![Asignación del receptor de eventos](https://home.agenda-master.com.mx/storage/turing/info 13.2.png)
 
-![Permisos requeridos por el servicio de Cloud Storage](src/docs/img/info 13.3.png)
+![Permisos requeridos por el servicio de Cloud Storage](https://home.agenda-master.com.mx/storage/turing/info 13.3.png)
 
-![Permisos requeridos por Cloud Pub/Sub](src/docs/img/info 13.4.png)
+![Permisos requeridos por Cloud Pub/Sub](https://home.agenda-master.com.mx/storage/turing/info 13.4.png)
 
 Otorgue los roles solo a las cuentas de servicio que aparecerán en la configuración del activador.
 
@@ -193,7 +193,7 @@ En la configuración de compilación de Cloud Run o Cloud Functions:
 - Punto de entrada: `on_file_upload`.
 - Entorno: Python 3.15.
 
-![Configuración de compilación con Python](src/docs/img/step17.png)
+![Configuración de compilación con Python](https://home.agenda-master.com.mx/storage/turing/step17.png)
 
 ## Crear el activador
 
@@ -206,11 +206,11 @@ En **Eventarc → Activadores**, cree un activador llamado `exportador-metadatos
 - Cuenta de servicio predeterminada o una cuenta creada específicamente para el activador.
 - Servicio Cloud Run: el nombre de la función desplegada.
 
-![Configuración del activador en Eventarc](src/docs/img/step14.png)
+![Configuración del activador en Eventarc](https://home.agenda-master.com.mx/storage/turing/step14.png)
 
 Para el acceso al activador se recomienda **Requerir autenticación**. Cuando sea necesario, habilite también los permisos de servicio y puede marcar **Identity and access management (IAM)** o **Identity-aware Proxy** según las políticas de la organización.
 
-![Opciones de autenticación del activador](src/docs/img/step15.png)
+![Opciones de autenticación del activador](https://home.agenda-master.com.mx/storage/turing/step15.png)
 
 Después de guardar, seleccione el bucket desde el activador y revise el resumen antes de finalizar.
 
