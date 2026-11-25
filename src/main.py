@@ -156,7 +156,6 @@ def on_file_upload(cloud_event):
                 {
                     "event": "file_upload_processed",
                     "event_id": event_id,
-                    "bucket": metadata["bucket"],
                     "name": metadata["name"],
                     "message": "Archivo procesado con éxito",
                 }
