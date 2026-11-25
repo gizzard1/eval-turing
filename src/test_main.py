@@ -167,4 +167,3 @@ def test_error_is_logged(caplog):
             main.on_file_upload(make_event(data))
 
     assert "validation_error" in caplog.text
->>>>>>> Stashed changes
