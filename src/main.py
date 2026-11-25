@@ -23,6 +23,9 @@ import functions_framework
 import os
 import urllib.request
 
+from google.auth.transport.requests import Request
+from google.oauth2 import id_token
+
 APPS_SCRIPT_URL = os.environ.get("APPS_SCRIPT_URL", "")
 
 # Logging estructurado: Cloud Logging recoge stdout y lo indexa.
@@ -203,12 +206,17 @@ def enviar_a_apps_script(metadata):
     if not APPS_SCRIPT_URL:
         print("APPS_SCRIPT_URL no configurada, no se envía nada")
         return
+    # APPS_SCRIPT_URL es la URL de tu Web App
+    token = id_token.fetch_id_token(Request(), APPS_SCRIPT_URL)
 
     payload = json.dumps(metadata).encode("utf-8")
     req = urllib.request.Request(
         APPS_SCRIPT_URL,
         data=payload,
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {token}",
+        },
         method="POST",
     )
     try:
