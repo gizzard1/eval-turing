@@ -63,7 +63,6 @@ def valid_data(**overrides):
         "name": "factura-001.pdf",
         "size": "24576",
         "contentType": "application/pdf",
-        "timeCreated": "2026-11-23T17:00:00.000Z",
         "updated": "2026-11-23T17:00:00.000Z",
         "metageneration": "1",
         "storageClass": "STANDARD",
@@ -82,7 +81,90 @@ def valid_data(**overrides):
 def test_success_extracts_metadata():
     result = main.on_file_upload(make_event(valid_data()))
 
+    assert result["bucket"] == "agenda-pruebas-2026-archivos"
     assert result["name"] == "factura-001.pdf"
     assert result["size_bytes"] == 24576
     assert result["size_kb"] == 24.0
+<<<<<<< Updated upstream
     assert result["content_type"] == "application/pdf"
+=======
+    assert result["content_type"] == "application/pdf"
+
+
+
+# ---------------------------------------------------------------------------
+# Casos borde: no bloquean el flujo
+# ---------------------------------------------------------------------------
+
+
+def test_missing_content_type_defaults_to_octet_stream(caplog):
+    data = valid_data()
+    del data["contentType"]
+
+    with caplog.at_level("WARNING", logger="process-file-upload"):
+        result = main.on_file_upload(make_event(data))
+
+    assert result["content_type"] == "application/octet-stream"
+    assert result["name"] == "factura-001.pdf"
+
+
+def test_missing_size_returns_none():
+    data = valid_data()
+    del data["size"]
+
+    result = main.on_file_upload(make_event(data))
+
+    assert result["size_bytes"] is None
+    assert result["size_kb"] is None
+    assert result["name"] == "factura-001.pdf"
+
+
+def test_invalid_size_returns_none():
+    result = main.on_file_upload(make_event(valid_data(size="no-es-numero")))
+    assert result["size_bytes"] is None
+    assert result["size_kb"] is None
+
+
+# ---------------------------------------------------------------------------
+# Manejo de errores: deben fallar de forma controlada (ValueError)
+# ---------------------------------------------------------------------------
+
+
+def test_missing_bucket_raises_value_error():
+    data = valid_data()
+    del data["bucket"]
+
+    with pytest.raises(ValueError):
+        main.on_file_upload(make_event(data))
+
+
+def test_missing_name_raises_value_error():
+    data = valid_data()
+    del data["name"]
+
+    with pytest.raises(ValueError):
+        main.on_file_upload(make_event(data))
+
+
+def test_none_data_raises_value_error():
+    with pytest.raises(ValueError):
+        main.on_file_upload(make_event(None))
+
+
+def test_non_dict_data_raises_value_error():
+    # Una lista no es un dict válido; un string se intenta parsear como
+    # JSON y también falla, pero con otro mensaje, así que se usa lista.
+    with pytest.raises(ValueError):
+        main.on_file_upload(make_event(["esto-no-es-un-dict"]))
+
+
+def test_error_is_logged(caplog):
+    data = valid_data()
+    del data["bucket"]
+
+    with caplog.at_level("ERROR", logger="process-file-upload"):
+        with pytest.raises(ValueError):
+            main.on_file_upload(make_event(data))
+
+    assert "validation_error" in caplog.text
+>>>>>>> Stashed changes
