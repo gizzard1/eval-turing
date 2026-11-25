@@ -20,6 +20,11 @@ import traceback
 
 import functions_framework
 
+import os
+import urllib.request
+
+APPS_SCRIPT_URL = os.environ.get("APPS_SCRIPT_URL", "")
+
 # Logging estructurado: Cloud Logging recoge stdout y lo indexa.
 # Nivel INFO en producción; DEBUG solo para pruebas locales.
 logging.basicConfig(level=logging.INFO)
@@ -158,6 +163,8 @@ def on_file_upload(cloud_event):
             )
         )
 
+        enviar_a_apps_script(metadata)
+
         return metadata
 
     except ValueError as exc:
@@ -192,3 +199,23 @@ def on_file_upload(cloud_event):
             )
         )
         raise
+
+def enviar_a_apps_script(metadata):
+    if not APPS_SCRIPT_URL:
+        print("APPS_SCRIPT_URL no configurada, no se envía nada")
+        return
+
+    payload = json.dumps(metadata).encode("utf-8")
+    req = urllib.request.Request(
+        APPS_SCRIPT_URL,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            print(f"Apps Script respondió: {resp.status} {resp.read().decode()}")
+    except Exception as e:
+        print(f"Error al enviar a Apps Script: {e}")
+        # No se lanza el error, para no reintentar el evento completo
+        # por un fallo del Sheet. Si quieres que reintente, quita el try.
