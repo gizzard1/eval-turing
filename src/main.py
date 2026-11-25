@@ -21,20 +21,41 @@ import traceback
 import functions_framework
 
 import os
-import urllib.request
 
-from google.auth.transport.requests import Request
-from google.oauth2 import id_token
+from datetime import datetime, timezone
+
+import functions_framework
+import google.auth
+from googleapiclient.discovery import build
+
 
 APPS_SCRIPT_URL = os.environ.get("APPS_SCRIPT_URL", "")
 AUTH_TOKEN = os.environ.get("AUTH_TOKEN", "")
 
+# ID del Sheet donde se registran los archivos. En local va en .env
+# (SPREADSHEET_ID). En GCP va como variable de entorno en el deploy.
+# Es solo la parte entre /d/ y /edit de la URL del Sheet.
+SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "")
+SHEET_NAME = os.environ.get("SHEET_NAME", "Sheet1")
 
 # Logging estructurado: Cloud Logging recoge stdout y lo indexa.
 # Nivel INFO en producción; DEBUG solo para pruebas locales.
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("process-file-upload")
 
+
+def _event_attr(cloud_event, name, default):
+    """Lee id/type del evento, sea un objeto falso, un CloudEvent real
+    (donde van en _attributes) o un dict."""
+    value = getattr(cloud_event, name, None)
+    if value:
+        return value
+    attrs = getattr(cloud_event, "_attributes", None)
+    if isinstance(attrs, dict) and attrs.get(name):
+        return attrs[name]
+    if isinstance(cloud_event, dict):
+        return cloud_event.get(name, default)
+    return default
 
 def _safe_int(value, field_name, event_id):
     """Convierte tamaño a int; si viene mal, loguea WARNING y devuelve None."""
@@ -156,6 +177,9 @@ def on_file_upload(cloud_event):
             )
         )
 
+        # Registrar la metadata directo en Sheets, sin Apps Script.
+        registrar_en_sheet(metadata, event_id)
+        
         logger.info(
             json.dumps(
                 {
@@ -167,7 +191,6 @@ def on_file_upload(cloud_event):
             )
         )
 
-        enviar_a_apps_script(metadata)
 
         return metadata
 
@@ -204,28 +227,80 @@ def on_file_upload(cloud_event):
         )
         raise
 
-def enviar_a_apps_script(metadata):
-    if not APPS_SCRIPT_URL:
-        print("APPS_SCRIPT_URL no configurada, no se envía nada")
-        return
-    if not AUTH_TOKEN:
-        print("AUTH_TOKEN no configurado, no se envía nada")
+def registrar_en_sheet(metadata, event_id):
+    """Escribe la metadata directo en Google Sheets con la API de Sheets.
+
+    Usa la cuenta de servicio de la función (ADC). El Sheet debe estar
+    compartido con esa cuenta de servicio como Editor.
+    Columnas: A ID | B Nombre | C Tamaño | D Tipo.
+    El ID ascendente se calcula leyendo la columna A.
+
+    No lanza excepción si falla: se loguea el error y el procesamiento
+    del archivo sigue, para no reintentar todo el evento por un fallo
+    del Sheet.
+    """
+    if not SPREADSHEET_ID:
+        logger.warning(
+            json.dumps(
+                {
+                    "event": "sheets_skipped",
+                    "event_id": event_id,
+                    "message": "SPREADSHEET_ID no configurada, no se registra nada",
+                }
+            )
+        )
         return
 
-    payload = json.dumps(metadata).encode("utf-8")
-    req = urllib.request.Request(
-        APPS_SCRIPT_URL,
-        data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {AUTH_TOKEN}",
-        },
-        method="POST",
-    )
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            print(f"Apps Script respondió: {resp.status} {resp.read().decode()}")
-    except Exception as e:
-        print(f"Error al enviar a Apps Script: {e}")
-        # No se lanza el error, para no reintentar el evento completo
-        # por un fallo del Sheet. Si quieres que reintente, quita el try.
+        creds, _ = google.auth.default(
+            scopes=["https://www.googleapis.com/auth/spreadsheets"]
+        )
+        service = build("sheets", "v4", credentials=creds)
+        values_api = service.spreadsheets().values()
+
+        # ID ascendente: mayor ID en columna A + 1. Si está vacía, 1.
+        result = values_api.get(
+            spreadsheetId=SPREADSHEET_ID,
+            range=f"{SHEET_NAME}!A2:A",
+        ).execute()
+        ids = [
+            int(v[0])
+            for v in result.get("values", [])
+            if v and str(v[0]).isdigit()
+        ]
+        next_id = max(ids) + 1 if ids else 1
+
+        row = [
+            next_id,
+            metadata.get("name", ""),
+            metadata.get("size_bytes") if metadata.get("size_bytes") is not None else "",
+            metadata.get("content_type", ""),
+        ]
+
+        values_api.append(
+            spreadsheetId=SPREADSHEET_ID,
+            range=f"{SHEET_NAME}!A:H",
+            valueInputOption="USER_ENTERED",
+            body={"values": [row]},
+        ).execute()
+
+        logger.info(
+            json.dumps(
+                {
+                    "event": "sheets_row_added",
+                    "event_id": event_id,
+                    "row_id": next_id,
+                    "name": metadata.get("name"),
+                }
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.error(
+            json.dumps(
+                {
+                    "event": "sheets_error",
+                    "event_id": event_id,
+                    "error": str(exc),
+                }
+            )
+        )
