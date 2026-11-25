@@ -85,9 +85,7 @@ def test_success_extracts_metadata():
     assert result["name"] == "factura-001.pdf"
     assert result["size_bytes"] == 24576
     assert result["size_kb"] == 24.0
-<<<<<<< Updated upstream
     assert result["content_type"] == "application/pdf"
-=======
     assert result["content_type"] == "application/pdf"
 
 
